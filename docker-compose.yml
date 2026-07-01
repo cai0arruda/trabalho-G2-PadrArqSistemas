@@ -1,0 +1,53 @@
+version: "3.9"
+
+services:
+  api:
+    build: .
+    container_name: medexam_api
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://medexam:medexam@db:5432/medexam
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      SECRET_KEY: dev-secret-key-change-in-prod
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: on-failure
+
+  db:
+    image: postgres:16-alpine
+    container_name: medexam_db
+    environment:
+      POSTGRES_USER: medexam
+      POSTGRES_PASSWORD: medexam
+      POSTGRES_DB: medexam
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medexam"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: medexam_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"  # Management UI
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

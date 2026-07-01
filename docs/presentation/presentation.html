@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedExam — Arquitetura de Software</title>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0b1120;
+  --surface: #151f35;
+  --surface2: #1e2d45;
+  --border: rgba(255,255,255,0.07);
+  --blue: #3b82f6;
+  --green: #10b981;
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --purple: #8b5cf6;
+  --text: #e8edf5;
+  --muted: #7a8fa6;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Progress bar ── */
+#progress-bar {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 3px; background: var(--surface2); z-index: 200;
+}
+#progress-fill {
+  height: 100%; background: var(--blue);
+  transition: width 0.4s ease, background 0.4s ease;
+}
+
+/* ── Time indicator ── */
+#time-indicator {
+  position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 100px; padding: 5px 16px; z-index: 200;
+  display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted);
+  white-space: nowrap;
+}
+#time-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── Nav ── */
+#nav {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 100px; padding: 6px 14px; z-index: 200;
+  display: flex; align-items: center; gap: 10px;
+}
+#nav button {
+  background: none; border: 1px solid var(--border); color: var(--text);
+  font-size: 15px; cursor: pointer; padding: 5px 12px; border-radius: 50px;
+  transition: background 0.2s, border-color 0.2s;
+}
+#nav button:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.18); }
+#slide-counter { font-size: 12px; color: var(--muted); min-width: 48px; text-align: center; }
+
+/* Keyboard hint */
+#kbd-hint {
+  position: fixed; bottom: 24px; right: 24px;
+  font-size: 11px; color: var(--muted); z-index: 200;
+  display: flex; gap: 6px; align-items: center;
+}
+.kbd {
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 2px 6px; font-size: 10px; background: var(--surface2);
+}
+
+/* ── Slide container ── */
+#slides { flex: 1; position: relative; }
+
+.slide {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  padding: 52px 72px 64px;
+  opacity: 0; transition: opacity 0.35s ease; pointer-events: none;
+  gap: 22px;
+}
+.slide.active { opacity: 1; pointer-events: all; }
+
+/* ── Typography ── */
+h1 { font-size: 3.4rem; font-weight: 800; line-height: 1.05; letter-spacing: -0.02em; }
+h2 { font-size: 1.9rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; }
+h3 { font-size: 1rem; font-weight: 600; }
+p  { font-size: 0.9rem; color: var(--muted); line-height: 1.6; }
+
+.slide-left { align-items: flex-start; }
+.full { width: 100%; }
+
+/* ── Tag / Badge ── */
+.tag {
+  display: inline-block; padding: 3px 10px; border-radius: 100px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.tag-blue   { background: rgba(59,130,246,0.18); color: #93c5fd; border: 1px solid rgba(59,130,246,0.3); }
+.tag-green  { background: rgba(16,185,129,0.18); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.3); }
+.tag-amber  { background: rgba(245,158,11,0.18); color: #fcd34d; border: 1px solid rgba(245,158,11,0.3); }
+.tag-purple { background: rgba(139,92,246,0.18); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.3); }
+.tag-red    { background: rgba(239,68,68,0.18);  color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+
+/* ── Gradient text ── */
+.grad {
+  background: linear-gradient(120deg, #3b82f6, #8b5cf6, #10b981);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+/* ── Card ── */
+.card {
+  background: var(--surface); border-radius: 14px; padding: 20px 24px;
+  border: 1px solid var(--border);
+}
+
+/* ── Comparison grid ── */
+.comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: 100%; }
+.cmp-col {
+  background: var(--surface); border-radius: 14px; padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.cmp-col-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 4px;
+}
+.cmp-item { display: flex; align-items: flex-start; gap: 10px; font-size: 0.87rem; }
+.x { color: #f87171; } .chk { color: #34d399; }
+
+/* ── Modules ── */
+.modules { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; width: 100%; }
+.mod-card {
+  background: var(--surface); border-radius: 14px; padding: 20px 16px;
+  text-align: center; border-top: 3px solid; display: flex; flex-direction: column; gap: 8px;
+}
+.mod-card h3 { font-size: 1rem; }
+.mod-card p  { font-size: 0.78rem; }
+.mod-icon    { font-size: 1.8rem; }
+
+/* ── ADR card ── */
+.adr {
+  background: var(--surface); border-radius: 14px; padding: 20px 24px;
+  border-left: 3px solid; width: 100%; display: flex; flex-direction: column; gap: 10px;
+}
+.adr-row { display: flex; gap: 12px; font-size: 0.87rem; align-items: baseline; }
+.adr-lbl {
+  min-width: 90px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--muted); flex-shrink: 0; padding-top: 1px;
+}
+.concepts {
+  background: var(--surface2); border-radius: 10px; padding: 12px 18px;
+  width: 100%; font-size: 0.82rem; color: var(--muted);
+}
+.concepts strong { color: var(--text); }
+
+/* ── Layers ── */
+.layers { display: flex; flex-direction: column; width: 100%; max-width: 640px; }
+.layer {
+  padding: 14px 24px; display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid #0b1120;
+}
+.layer:first-child { border-radius: 14px 14px 0 0; }
+.layer:last-child  { border-radius: 0 0 14px 14px; border-bottom: none; }
+.layer-sub { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
+.layer-name { font-size: 0.92rem; font-weight: 600; }
+
+/* ── EDA flow ── */
+.eda-row { display: flex; align-items: center; gap: 6px; width: 100%; flex-wrap: wrap; }
+.eda-box {
+  background: var(--surface); border-radius: 10px; padding: 10px 14px;
+  font-size: 0.82rem; text-align: center; border: 1px solid var(--border); flex-shrink: 0;
+}
+.eda-box .sub { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
+.arrow { color: var(--muted); font-size: 1.1rem; }
+
+/* ── Bullet list ── */
+.blist { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.blist li { font-size: 0.87rem; display: flex; gap: 10px; align-items: flex-start; }
+.blist li::before { content: '▸'; color: var(--blue); flex-shrink: 0; margin-top: 2px; }
+
+/* ── Profile containers ── */
+.mini-containers { display: flex; gap: 12px; align-items: center; justify-content: center; width: 100%; }
+.mini-box {
+  background: var(--surface); border-radius: 12px; padding: 16px 20px;
+  text-align: center; display: flex; flex-direction: column; gap: 6px; flex: 1; max-width: 180px;
+  border: 1px solid var(--border);
+}
+.mini-arrow { color: var(--muted); font-size: 1.2rem; }
+
+/* ── Stack grid ── */
+.stack-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 100%; }
+.stack-item {
+  background: var(--surface); border-radius: 12px; padding: 14px 18px;
+  display: flex; align-items: center; gap: 14px; border: 1px solid var(--border);
+}
+.stack-ico { font-size: 1.7rem; }
+.stack-info h3 { font-size: 0.9rem; }
+.stack-info p  { font-size: 0.75rem; }
+
+/* ── Demo steps ── */
+.demo-steps { display: flex; flex-direction: column; gap: 7px; width: 100%; max-width: 720px; }
+.demo-step {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface); border-radius: 10px; padding: 10px 16px;
+  border: 1px solid var(--border);
+}
+.step-num {
+  width: 26px; height: 26px; border-radius: 50%; background: var(--blue);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.72rem; font-weight: 800; flex-shrink: 0;
+}
+.step-num.danger { background: #ef4444; }
+.method {
+  padding: 2px 7px; border-radius: 5px; font-size: 0.7rem; font-weight: 800;
+  flex-shrink: 0; background: var(--surface2);
+}
+.m-post { color: #34d399; } .m-get { color: #60a5fa; }
+.step-path { font-family: 'Cascadia Code', 'Courier New', monospace; font-size: 0.82rem; color: var(--muted); flex: 1; }
+.step-result { font-size: 0.78rem; text-align: right; flex-shrink: 0; }
+
+/* ── Code box ── */
+.code-box {
+  background: #080d16; border: 1px solid rgba(255,255,255,0.09); border-radius: 12px;
+  padding: 20px 24px; font-family: 'Cascadia Code', 'Courier New', monospace;
+  font-size: 0.83rem; color: #10b981; line-height: 1.7; width: 100%; max-width: 680px;
+}
+.kw  { color: #c084fc; }
+.str { color: #34d399; }
+.cm  { color: #4b6080; }
+
+/* ── Conclusion grid ── */
+.conc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 100%; }
+.conc-card {
+  background: var(--surface); border-radius: 14px; padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--border);
+}
+.conc-num { font-size: 1.8rem; font-weight: 800; line-height: 1; }
+.conc-card h3 { font-size: 0.88rem; }
+.conc-card p  { font-size: 0.78rem; }
+
+/* ── Enterprise pills ── */
+.pills { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
+.pill {
+  background: var(--surface2); border-radius: 10px; padding: 12px;
+  text-align: center; display: flex; flex-direction: column; gap: 4px;
+}
+.pill-ico  { font-size: 1.4rem; }
+.pill-lbl  { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.pill-val  { font-size: 0.82rem; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"><div id="progress-fill"></div></div>
+
+<div id="time-indicator">
+  <div id="time-dot"></div>
+  <span id="time-text"></span>
+</div>
+
+<div id="slides">
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 1 · COVER
+       ═══════════════════════════════════════════════ -->
+  <div class="slide" data-block="0" data-label="Apresentação">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+        <span class="tag tag-blue">FastAPI</span>
+        <span class="tag tag-green">Clean Architecture</span>
+        <span class="tag tag-amber">EDA</span>
+        <span class="tag tag-purple">RabbitMQ</span>
+      </div>
+      <h1 class="grad" style="font-size:4rem;">MedExam</h1>
+      <h2 style="font-weight:300;color:var(--muted);font-size:1.3rem;">Plataforma de Gerenciamento de Exames Médicos</h2>
+      <p style="max-width:460px;">Monolito Modular · Clean Architecture · Event-Driven Architecture</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 2 · PROBLEMA
+       ═══════════════════════════════════════════════ -->
+  <div class="slide slide-left" data-block="1" data-label="0:00 – 1:00 · Problema e Contexto">
+    <span class="tag tag-red">Problema</span>
+    <h2>Postos de saúde sem sistema</h2>
+    <div class="comparison full">
+      <div class="cmp-col">
+        <div class="cmp-col-title" style="color:#f87171;">Situação Atual</div>
+        <div class="cmp-item"><span class="x">✗</span> Exames em papel ou PDF avulso</div>
+        <div class="cmp-item"><span class="x">✗</span> Sem acesso remoto ao resultado</div>
+        <div class="cmp-item"><span class="x">✗</span> Sem notificação de laudo</div>
+        <div class="cmp-item"><span class="x">✗</span> Sem controle de acesso por perfil</div>
+      </div>
+      <div class="cmp-col">
+        <div class="cmp-col-title" style="color:#34d399;">Situação Proposta</div>
+        <div class="cmp-item"><span class="chk">✓</span> Plataforma centralizada com histórico</div>
+        <div class="cmp-item"><span class="chk">✓</span> Paciente acessa via CPF e senha</div>
+        <div class="cmp-item"><span class="chk">✓</span> Eventos assíncronos notificam</div>
+        <div class="cmp-item"><span class="chk">✓</span> JWT com roles: patient, doctor, admin</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 3 · MÓDULOS
+       ═══════════════════════════════════════════════ -->
+  <div class="slide slide-left" data-block="1" data-label="0:00 – 1:00 · Problema e Contexto">
+    <span class="tag tag-blue">Solução</span>
+    <h2>Monolito Modular — 4 Módulos</h2>
+    <div class="modules">
+      <div class="mod-card" style="border-color:#3b82f6;">
+        <div class="mod-icon">🔐</div>
+        <h3>auth</h3>
+        <p>Registro, login, JWT</p>
+      </div>
+      <div class="mod-card" style="border-color:#10b981;">
+        <div class="mod-icon">👤</div>
+        <h3>patients</h3>
+        <p>Cadastro de pacientes</p>
+      </div>
+      <div class="mod-card" style="border-color:#f59e0b;">
+        <div class="mod-icon">🩺</div>
+        <h3>exams</h3>
+        <p>Upload e consulta</p>
+      </div>
+      <div class="mod-card" style="border-color:#8b5cf6;">
+        <div class="mod-icon">📋</div>
+        <h3>reports</h3>
+        <p>Emissão de laudos</p>
+      </div>
+    </div>
+    <p style="text-align:center;max-width:580px;">
+      Cada módulo tem responsabilidade única · Fronteiras bem definidas · Comunicação via eventos
+    </p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 4 · ADR-01
+       ═══════════════════════════════════════════════ -->
+  <div class="slide slide-left" data-block="2" data-label="1:00 – 2:30 · Decisões Arquiteturais + ADRs">
+    <span class="tag tag-green">ADR-01</span>
+    <h2>Monolito Modular vs Microserviços</h2>
+    <div class="adr" style="border-color:#3b82f6;">
+      <div class="adr-row">
+        <span class="adr-lbl">Contexto</span>
+        <span>Sistema novo · Dev solo · Domínio em maturação</span>
+      </div>
+      <div class="adr-row">
+        <span class="adr-lbl">Decisão</span>
+        <span style="color:#93c5fd;font-weight:600;">Monolito modular com 4 módulos independentes</span>
+      </div>
+      <div class="adr-row">
+        <span class="adr-lbl">Ganho</span>
+        <span style="color:#6ee7b7;">Deploy único · Sem latência entre módulos · Debug direto</span>
+      </div>
+      <div class="adr-row">
+        <span class="adr-lbl">Tradeoff</span>
+        <span style="color:#fca5a5;">Sem escala independente por módulo · Deploy isolado impossível</span>
+      </div>
+    </div>
+    <div class="concepts full">
+      <strong>Conceitos:</strong> Monolito Modular · Screaming Architecture · SRP Arquitetural
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 5 · ADR-02
+       ═══════════════════════════════════════════════ -->
+  <div class="slide slide-left" data-block="2" data-label="1:00 – 2:30 · Decisões Arquiteturais + ADRs">
+    <span class="tag tag-green">ADR-02</span>
+    <h2>Clean Architecture + EDA com RabbitMQ</h2>
+    <div class="adr" style="border-color:#10b981;">
+      <div class="adr-row">
+        <span class="adr-lbl">Contexto</span>
+        <span>Domínio de saúde exige regras isoladas · Eventos assíncronos necessários</span>
+      </div>
+      <div class="adr-row">
+        <span class="adr-lbl">Decisão</span>
+        <span style="color:#6ee7b7;font-weight:600;">Clean Architecture 4 camadas + EDA via RabbitMQ/AMQP</span>
+      </div>
+      <div class="adr-row">
+        <span class="adr-lbl">Ganho</span>
+        <span style="color:#6ee7b7;">Domínio testável · Módulos desacoplados · Infra substituível</span>
+      </div>
+      <div class="adr-row">
+        <span class="adr-lbl">Tradeoff</span>
+        <span style="color:#fca5a5;">Complexidade adicional · Debug assíncrono mais difícil</span>
+      </div>
+    </div>
+    <div class="concepts full">
+      <strong>Conceitos:</strong> Clean Architecture · EDA · Ports &amp; Adapters · Inversão de Dependências
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 6 · ADR-03
+       ═══════════════════════════════════════════════ -->
+  <div class="slide slide-left" data-block="2" data-label="1:00 – 2:30 · Decisões Arquiteturais + ADRs">
+    <span class="tag tag-green">ADR-03</span>
+    <h2>CQRS — Avaliado e Não Implementado</h2>
+    <div class="adr" style="border-color:#f59e0b;">
+      <div class="adr-row">
+        <span class="adr-lbl">Contexto</span>
+        <span>Exigência de avaliação do padrão — separar leitura e escrita</span>
+      </div>
+      <div class="adr-row">
+        <span class="adr-lbl">Decisão</span>
+        <span style="color:#fcd34d;font-weight:600;">Não implementar — banco único, volume não justifica</span>
+      </div>
+      <div class="adr-row">
+        <span class="adr-lbl">Ganho</span>
+        <span style="color:#6ee7b7;">Simplicidade · Um repositório por entidade · Menos código</span>
+      </div>
+      <div class="adr-row">
+        <span class="adr-lbl">Tradeoff</span>
+        <span style="color:#fca5a5;">Escala de leitura futura limitada</span>
+      </div>
+    </div>
+    <div class="concepts full">
+      <strong>Resposta-chave:</strong> Casos de uso já separam intenção (create vs get) — caminho aberto para CQRS incremental
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 7 · CLEAN ARCH LAYERS
+       ═══════════════════════════════════════════════ -->
+  <div class="slide" data-block="2" data-label="1:00 – 2:30 · Decisões Arquiteturais + ADRs" style="gap:20px;">
+    <span class="tag tag-green">Clean Architecture</span>
+    <h2>Dependências sempre apontam para dentro</h2>
+    <div class="layers">
+      <div class="layer" style="background:#121b36;">
+        <div>
+          <div class="layer-sub">Interfaces</div>
+          <div class="layer-name">FastAPI routes · Schemas Pydantic</div>
+        </div>
+        <span class="tag tag-blue">API</span>
+      </div>
+      <div class="layer" style="background:#0f2218;">
+        <div>
+          <div class="layer-sub">Infrastructure</div>
+          <div class="layer-name">SQLAlchemy · RabbitMQ · JWT · bcrypt</div>
+        </div>
+        <span class="tag tag-green">Infra</span>
+      </div>
+      <div class="layer" style="background:#1c2a10;">
+        <div>
+          <div class="layer-sub">Application</div>
+          <div class="layer-name">Casos de uso · Ports (ABCs / interfaces)</div>
+        </div>
+        <span class="tag tag-amber">App</span>
+      </div>
+      <div class="layer" style="background:#1e1030;">
+        <div>
+          <div class="layer-sub">Domain — núcleo</div>
+          <div class="layer-name">Entidades · Eventos · Exceções — Python puro</div>
+        </div>
+        <span class="tag tag-purple">Core</span>
+      </div>
+    </div>
+    <p style="text-align:center;max-width:520px;">
+      <strong style="color:#93c5fd;">id</strong> do paciente (identidade clínica)
+      &nbsp;≠&nbsp;
+      <strong style="color:#c4b5fd;">user_id</strong> (identidade de acesso) — desacoplamento intencional
+    </p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 8 · EDA
+       ═══════════════════════════════════════════════ -->
+  <div class="slide slide-left" data-block="2" data-label="1:00 – 2:30 · Decisões Arquiteturais + ADRs" style="gap:20px;">
+    <span class="tag tag-amber">EDA — Event-Driven Architecture</span>
+    <h2>Módulos comunicam via eventos, sem chamadas diretas</h2>
+    <div style="display:flex;flex-direction:column;gap:10px;width:100%;">
+      <div class="eda-row">
+        <div class="eda-box" style="border-color:#3b82f6;min-width:130px;">
+          <div class="sub" style="color:#60a5fa;">EXAMS</div>
+          <strong>POST /exams/</strong>
+        </div>
+        <span class="arrow">→</span>
+        <div class="eda-box" style="border-color:#f59e0b;min-width:148px;">
+          <div class="sub" style="color:#fbbf24;">Evento</div>
+          <strong>ExamPerformed</strong>
+        </div>
+        <span class="arrow">→</span>
+        <div class="eda-box" style="border-color:#8b5cf6;min-width:148px;">
+          <div class="sub" style="color:#a78bfa;">Fila</div>
+          <strong>exam.performed</strong>
+        </div>
+      </div>
+      <div class="eda-row">
+        <div class="eda-box" style="border-color:#8b5cf6;min-width:130px;">
+          <div class="sub" style="color:#a78bfa;">REPORTS</div>
+          <strong>POST /reports/</strong>
+        </div>
+        <span class="arrow">→</span>
+        <div class="eda-box" style="border-color:#f59e0b;min-width:148px;">
+          <div class="sub" style="color:#fbbf24;">Evento</div>
+          <strong>ReportIssued</strong>
+        </div>
+        <span class="arrow">→</span>
+        <div class="eda-box" style="border-color:#8b5cf6;min-width:148px;">
+          <div class="sub" style="color:#a78bfa;">Fila</div>
+          <strong>report.issued</strong>
+        </div>
+        <span class="arrow">→</span>
+        <div class="eda-box" style="border-color:#10b981;min-width:148px;">
+          <div class="sub" style="color:#34d399;">Notificação</div>
+          <strong>result.available</strong>
+        </div>
+      </div>
+    </div>
+    <p style="text-align:center;max-width:560px;">
+      E-mail, SMS ou app mobile consomem
+      <code style="background:var(--surface2);padding:2px 7px;border-radius:5px;color:#34d399;">result.available</code>
+      sem modificar uma linha de código existente
+    </p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 9 · ARQUITETO DE SOFTWARE
+       ═══════════════════════════════════════════════ -->
+  <div class="slide slide-left" data-block="3" data-label="2:30 – 5:00 · Perfis de Arquiteto">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="font-size:2.2rem;">💻</span>
+      <div>
+        <span class="tag tag-blue">Arquiteto de Software</span>
+        <h2 style="margin-top:6px;">Como o código está organizado por dentro?</h2>
+      </div>
+    </div>
+    <div class="card full">
+      <ul class="blist">
+        <li>Clean Architecture com 4 camadas — dependências apontam para dentro</li>
+        <li>Entidades em <strong>Python puro</strong> — sem SQLAlchemy, sem FastAPI, sem RabbitMQ</li>
+        <li>Casos de uso dependem de <strong>contratos (ports/ABCs)</strong>, nunca de implementações concretas</li>
+        <li><strong style="color:#93c5fd;">id</strong> do paciente ≠ <strong style="color:#c4b5fd;">user_id</strong> — identidade clínica desacoplada da identidade de acesso</li>
+        <li>Regra no domínio: paciente só vê os próprios exames → <span class="tag tag-red" style="font-size:10px;">403 Forbidden</span> para outros</li>
+      </ul>
+    </div>
+    <div class="concepts full">
+      <strong>GetPatientExamsUseCase</strong> — se requester for patient e user_id não bater → <em>UnauthorizedAccess</em>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 10 · ARQUITETO DE SOLUÇÃO
+       ═══════════════════════════════════════════════ -->
+  <div class="slide slide-left" data-block="3" data-label="2:30 – 5:00 · Perfis de Arquiteto">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="font-size:2.2rem;">🔗</span>
+      <div>
+        <span class="tag tag-purple">Arquiteto de Solução</span>
+        <h2 style="margin-top:6px;">Como os componentes conversam entre si?</h2>
+      </div>
+    </div>
+    <div class="card full">
+      <ul class="blist">
+        <li>API REST recebe requisições síncronas dos clientes</li>
+        <li>Ao criar exame ou laudo, publica evento no <strong>RabbitMQ via AMQP</strong> de forma assíncrona</li>
+        <li>3 containers com <strong>Docker Compose</strong> + health checks — API só sobe após banco e broker prontos</li>
+        <li>Eventos carregam IDs suficientes para qualquer consumidor processar de forma independente</li>
+        <li><strong>FakeBroker</strong> absorve falha do RabbitMQ com log — API continua funcionando</li>
+      </ul>
+    </div>
+    <div class="mini-containers">
+      <div class="mini-box">
+        <div style="font-size:1.6rem;">🗄️</div>
+        <strong style="font-size:0.83rem;">PostgreSQL</strong>
+        <span style="font-size:0.72rem;color:var(--muted);">:5432</span>
+      </div>
+      <div class="mini-arrow">→</div>
+      <div class="mini-box" style="border-color:rgba(59,130,246,0.35);">
+        <div style="font-size:1.6rem;">⚡</div>
+        <strong style="font-size:0.83rem;">FastAPI</strong>
+        <span style="font-size:0.72rem;color:var(--muted);">:8000</span>
+      </div>
+      <div class="mini-arrow">→</div>
+      <div class="mini-box">
+        <div style="font-size:1.6rem;">🐇</div>
+        <strong style="font-size:0.83rem;">RabbitMQ</strong>
+        <span style="font-size:0.72rem;color:var(--muted);">:5672</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 11 · ARQUITETO ENTERPRISE
+       ═══════════════════════════════════════════════ -->
+  <div class="slide slide-left" data-block="3" data-label="2:30 – 5:00 · Perfis de Arquiteto">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="font-size:2.2rem;">🏢</span>
+      <div>
+        <span class="tag tag-amber">Arquiteto Enterprise</span>
+        <h2 style="margin-top:6px;">Por que essa arquitetura faz sentido para a empresa?</h2>
+      </div>
+    </div>
+    <div class="card full">
+      <ul class="blist">
+        <li><strong>Custo operacional baixo</strong> — deploy único, sem orquestração complexa</li>
+        <li>Viável para postos de saúde públicos com equipe de TI reduzida</li>
+        <li>Controle de acesso por roles alinhado com <strong>LGPD</strong> e regulamentações de saúde</li>
+        <li>Módulos com fronteiras definidas permitem <strong>migração incremental</strong> para microserviços no futuro</li>
+      </ul>
+    </div>
+    <div class="pills full">
+      <div class="pill">
+        <div class="pill-ico">💰</div>
+        <div class="pill-lbl">Custo</div>
+        <div class="pill-val">Baixo</div>
+      </div>
+      <div class="pill">
+        <div class="pill-ico">🔒</div>
+        <div class="pill-lbl">Governança</div>
+        <div class="pill-val">LGPD</div>
+      </div>
+      <div class="pill">
+        <div class="pill-ico">📈</div>
+        <div class="pill-lbl">Escalabilidade</div>
+        <div class="pill-val">Incremental</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 12 · STACK TÉCNICA
+       ═══════════════════════════════════════════════ -->
+  <div class="slide slide-left" data-block="4" data-label="5:00 – 10:00 · Demo + Conclusão">
+    <span class="tag tag-amber">Demo — Infraestrutura</span>
+    <h2>Stack Técnica</h2>
+    <div class="stack-grid full">
+      <div class="stack-item">
+        <div class="stack-ico">⚡</div>
+        <div class="stack-info"><h3>FastAPI</h3><p>Python 3.12 · Swagger UI</p></div>
+      </div>
+      <div class="stack-item">
+        <div class="stack-ico">🗄️</div>
+        <div class="stack-info"><h3>PostgreSQL 16</h3><p>SQLAlchemy ORM</p></div>
+      </div>
+      <div class="stack-item">
+        <div class="stack-ico">🐇</div>
+        <div class="stack-info"><h3>RabbitMQ 3.13</h3><p>AMQP</p></div>
+      </div>
+      <div class="stack-item">
+        <div class="stack-ico">🔐</div>
+        <div class="stack-info"><h3>JWT + bcrypt</h3><p>python-jose · Auth stateless</p></div>
+      </div>
+      <div class="stack-item">
+        <div class="stack-ico">🐳</div>
+        <div class="stack-info"><h3>Docker Compose</h3><p>Health checks · 3 containers</p></div>
+      </div>
+      <div class="stack-item">
+        <div class="stack-ico">📄</div>
+        <div class="stack-info"><h3>Swagger UI</h3><p>Automático via FastAPI</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 13 · DEMO FLOW
+       ═══════════════════════════════════════════════ -->
+  <div class="slide" data-block="4" data-label="5:00 – 10:00 · Demo + Conclusão" style="gap:16px;">
+    <span class="tag tag-amber">Demo — Roteiro</span>
+    <h2>Fluxo da Demonstração</h2>
+    <div class="demo-steps">
+      <div class="demo-step">
+        <div class="step-num">1</div>
+        <span class="method m-post">POST</span>
+        <span class="step-path">/auth/register (doctor)</span>
+        <span class="step-result" style="color:var(--muted);">201 + user_id</span>
+      </div>
+      <div class="demo-step">
+        <div class="step-num">2</div>
+        <span class="method m-post">POST</span>
+        <span class="step-path">/auth/login</span>
+        <span class="step-result" style="color:var(--muted);">Copiar token → Swagger Authorize</span>
+      </div>
+      <div class="demo-step">
+        <div class="step-num">3</div>
+        <span class="method m-post">POST</span>
+        <span class="step-path">/auth/register (patient)</span>
+        <span class="step-result" style="color:var(--muted);">user_id do paciente</span>
+      </div>
+      <div class="demo-step">
+        <div class="step-num">4</div>
+        <span class="method m-post">POST</span>
+        <span class="step-path">/patients/</span>
+        <span class="step-result" style="color:#93c5fd;">id ≠ user_id</span>
+      </div>
+      <div class="demo-step">
+        <div class="step-num">5</div>
+        <span class="method m-post">POST</span>
+        <span class="step-path">/exams/ + upload</span>
+        <span class="step-result" style="color:var(--muted);">status: pending</span>
+      </div>
+      <div class="demo-step">
+        <div class="step-num">6</div>
+        <span class="method m-post">POST</span>
+        <span class="step-path">/reports/</span>
+        <span class="step-result" style="color:#fbbf24;">2 eventos no terminal 🐇</span>
+      </div>
+      <div class="demo-step">
+        <div class="step-num danger">7</div>
+        <span class="method m-get">GET</span>
+        <span class="step-path">/exams/patient/{id} — paciente errado</span>
+        <span class="step-result" style="color:#f87171;">403 Forbidden</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 14 · PAYLOAD REAL
+       ═══════════════════════════════════════════════ -->
+  <div class="slide" data-block="4" data-label="5:00 – 10:00 · Demo + Conclusão" style="gap:20px;">
+    <span class="tag tag-amber">Demo — Evento Real</span>
+    <h2>Payload publicado no RabbitMQ</h2>
+    <div class="code-box">
+      <span class="cm">// Terminal ao emitir laudo — [EVENTO]</span><br>
+      {<br>
+      &nbsp;&nbsp;<span class="kw">"event"</span>: <span class="str">"ReportIssued"</span>,<br>
+      &nbsp;&nbsp;<span class="kw">"report_id"</span>: <span class="str">"87069c29-..."</span>,<br>
+      &nbsp;&nbsp;<span class="kw">"exam_id"</span>: <span class="str">"92402d14-..."</span>,<br>
+      &nbsp;&nbsp;<span class="kw">"patient_id"</span>: <span class="str">"1985a6a0-..."</span>,<br>
+      &nbsp;&nbsp;<span class="kw">"doctor_id"</span>: <span class="str">"937e939e-..."</span>,<br>
+      &nbsp;&nbsp;<span class="kw">"occurred_at"</span>: <span class="str">"2026-06-16T18:47:22"</span><br>
+      }
+    </div>
+    <p style="text-align:center;max-width:560px;">
+      IDs suficientes para qualquer consumidor processar de forma independente —
+      <strong style="color:#34d399;">desacoplamento total entre módulos</strong>
+    </p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SLIDE 15 · CONCLUSÃO
+       ═══════════════════════════════════════════════ -->
+  <div class="slide" data-block="4" data-label="5:00 – 10:00 · Demo + Conclusão" style="gap:20px;">
+    <span class="tag tag-green">Conclusão</span>
+    <h2>Aprendizados</h2>
+    <div class="conc-grid full">
+      <div class="conc-card">
+        <div class="conc-num" style="color:#3b82f6;">01</div>
+        <h3>Arquitetura serve o contexto</h3>
+        <p>Monolito modular foi a escolha certa para dev solo, sistema novo, domínio em maturação.</p>
+      </div>
+      <div class="conc-card">
+        <div class="conc-num" style="color:#10b981;">02</div>
+        <h3>Domínio no centro</h3>
+        <p>Clean Architecture protege regras de negócio da tecnologia. Infra substituível sem tocar no domínio.</p>
+      </div>
+      <div class="conc-card">
+        <div class="conc-num" style="color:#8b5cf6;">03</div>
+        <h3>Eventos = extensibilidade</h3>
+        <p>EDA permite adicionar notificações (SMS, e-mail) sem modificar uma linha de código existente.</p>
+      </div>
+      <div class="conc-card">
+        <div class="conc-num" style="color:#f59e0b;">04</div>
+        <h3>ADR documenta o porquê</h3>
+        <p>Decisões negadas (CQRS) são tão importantes quanto as adotadas. O contexto justifica a simplicidade.</p>
+      </div>
+      <div class="conc-card">
+        <div class="conc-num" style="color:#ef4444;">05</div>
+        <h3>Preparado para evoluir</h3>
+        <p>Fronteiras de módulo definidas permitem migração incremental para microserviços quando necessário.</p>
+      </div>
+      <div class="conc-card" style="background:rgba(59,130,246,0.08);border-color:rgba(59,130,246,0.25);align-items:center;justify-content:center;text-align:center;">
+        <div style="font-size:2.2rem;">🏥</div>
+        <h3 class="grad" style="font-size:1.1rem;">MedExam</h3>
+        <p style="font-size:0.74rem;">FastAPI · Clean Arch · EDA · RabbitMQ · PostgreSQL · JWT · Docker</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /slides -->
+
+<div id="nav">
+  <button id="btn-prev" onclick="navigate(-1)">←</button>
+  <span id="slide-counter">1 / 15</span>
+  <button id="btn-next" onclick="navigate(1)">→</button>
+</div>
+
+<div id="kbd-hint">
+  <span class="kbd">←</span><span class="kbd">→</span> navegar &nbsp;|&nbsp; <span class="kbd">F</span> tela cheia
+</div>
+
+<script>
+(function () {
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const total  = slides.length;
+  let cur = 0;
+
+  const blockColors = [
+    '#7a8fa6', // 0 cover
+    '#60a5fa', // 1 problema
+    '#34d399', // 2 adr
+    '#c4b5fd', // 3 perfis
+    '#fbbf24', // 4 demo
+  ];
+
+  function show(idx) {
+    slides[cur].classList.remove('active');
+    cur = Math.max(0, Math.min(total - 1, idx));
+    slides[cur].classList.add('active');
+    refresh();
+  }
+
+  function navigate(dir) { show(cur + dir); }
+  window.navigate = navigate;
+
+  function refresh() {
+    const block = parseInt(slides[cur].dataset.block || 0);
+    const label = slides[cur].dataset.label || '';
+    document.getElementById('slide-counter').textContent = (cur + 1) + ' / ' + total;
+    document.getElementById('progress-fill').style.width  = ((cur + 1) / total * 100) + '%';
+    document.getElementById('progress-fill').style.background = blockColors[block];
+    document.getElementById('time-dot').style.background  = blockColors[block];
+    document.getElementById('time-text').textContent      = label;
+    document.getElementById('btn-prev').style.opacity = cur === 0 ? '0.3' : '1';
+    document.getElementById('btn-next').style.opacity = cur === total - 1 ? '0.3' : '1';
+  }
+
+  // Keyboard
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+      e.preventDefault(); navigate(1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault(); navigate(-1);
+    } else if (e.key === 'f' || e.key === 'F') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  // Touch
+  let tx = 0;
+  document.addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; });
+  document.addEventListener('touchend',   function (e) {
+    const d = tx - e.changedTouches[0].clientX;
+    if (Math.abs(d) > 50) navigate(d > 0 ? 1 : -1);
+  });
+
+  // Init
+  show(0);
+})();
+</script>
+</body>
+</html>

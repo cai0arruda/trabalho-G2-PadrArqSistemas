@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MedExam Platform</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary:    #2563eb;
+      --primary-d:  #1d4ed8;
+      --cyan:       #0891b2;
+      --emerald:    #059669;
+      --amber:      #d97706;
+      --rose:       #e11d48;
+      --bg:         #f1f5f9;
+      --surface:    #ffffff;
+      --border:     #e2e8f0;
+      --text:       #0f172a;
+      --muted:      #64748b;
+      --radius:     12px;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 50%, #0891b2 100%);
+      color: #fff;
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 12px rgba(0,0,0,.2);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -.5px;
+    }
+
+    .logo svg { width: 28px; height: 28px; }
+
+    .header-links { display: flex; gap: .75rem; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .45rem 1rem;
+      border-radius: 6px;
+      font-size: .85rem;
+      font-weight: 600;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn:hover { opacity: .85; transform: translateY(-1px); }
+
+    .btn-outline {
+      background: rgba(255,255,255,.15);
+      color: #fff;
+      border: 1.5px solid rgba(255,255,255,.4);
+      backdrop-filter: blur(4px);
+    }
+    .btn-white {
+      background: #fff;
+      color: var(--primary);
+    }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(160deg, #1e3a8a 0%, #1d4ed8 45%, #0e7490 100%);
+      color: #fff;
+      padding: 4rem 2rem 5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.3);
+      border-radius: 100px;
+      padding: .3rem .9rem;
+      font-size: .8rem;
+      font-weight: 600;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      margin-bottom: 1.25rem;
+      backdrop-filter: blur(4px);
+    }
+
+    .hero h1 {
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1.1;
+      margin-bottom: .75rem;
+    }
+
+    .hero p {
+      font-size: 1.05rem;
+      opacity: .85;
+      max-width: 560px;
+      margin: 0 auto 2rem;
+      line-height: 1.6;
+    }
+
+    .hero-actions { display: flex; gap: .75rem; justify-content: center; flex-wrap: wrap; }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 100px;
+      padding: .25rem .75rem;
+      font-size: .78rem;
+      margin-top: 2rem;
+      cursor: default;
+    }
+
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #4ade80;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: .4; }
+    }
+
+    .dot.checking { background: #fbbf24; animation: none; }
+    .dot.error    { background: #f87171; animation: none; }
+
+    /* ── CONTENT ── */
+    main { max-width: 1100px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+    }
+
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── STATS ROW ── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: .25rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    }
+
+    .stat-label { font-size: .78rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+    .stat-value { font-size: 1.75rem; font-weight: 800; color: var(--text); line-height: 1; }
+    .stat-sub   { font-size: .78rem; color: var(--muted); }
+
+    /* ── ENDPOINT CARDS ── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2.5rem;
+    }
+
+    @media (max-width: 540px) { .cards-grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,.05);
+      transition: box-shadow .2s, transform .15s;
+    }
+    .card:hover { box-shadow: 0 6px 24px rgba(0,0,0,.09); transform: translateY(-2px); }
+
+    .card-header {
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .icon-blue   { background: #dbeafe; color: #2563eb; }
+    .icon-green  { background: #d1fae5; color: #059669; }
+    .icon-purple { background: #ede9fe; color: #7c3aed; }
+    .icon-orange { background: #ffedd5; color: #c2410c; }
+
+    .card-header-text { flex: 1; }
+    .card-title    { font-size: 1rem; font-weight: 700; }
+    .card-subtitle { font-size: .8rem; color: var(--muted); margin-top: 1px; }
+
+    .card-prefix {
+      font-size: .72rem;
+      font-weight: 600;
+      background: #f1f5f9;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: .2rem .55rem;
+      font-family: monospace;
+      letter-spacing: .3px;
+    }
+
+    .endpoint-list { padding: .5rem 0; }
+
+    .endpoint {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      padding: .65rem 1.25rem;
+      border-bottom: 1px solid #f8fafc;
+      transition: background .1s;
+    }
+    .endpoint:last-child { border-bottom: none; }
+    .endpoint:hover { background: #f8fafc; }
+
+    .method {
+      font-size: .7rem;
+      font-weight: 700;
+      font-family: monospace;
+      letter-spacing: .3px;
+      padding: .18rem .5rem;
+      border-radius: 4px;
+      min-width: 44px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .method-get  { background: #d1fae5; color: #065f46; }
+    .method-post { background: #dbeafe; color: #1e40af; }
+    .method-put  { background: #fef3c7; color: #78350f; }
+    .method-del  { background: #fee2e2; color: #7f1d1d; }
+
+    .endpoint-path {
+      font-family: monospace;
+      font-size: .82rem;
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .endpoint-desc {
+      font-size: .8rem;
+      color: var(--muted);
+      margin-left: auto;
+      text-align: right;
+    }
+
+    .auth-badge {
+      font-size: .68rem;
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+      border-radius: 4px;
+      padding: .1rem .4rem;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    /* ── ARCH SECTION ── */
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    }
+
+    .arch-icon { font-size: 2rem; margin-bottom: .5rem; }
+    .arch-name { font-weight: 700; font-size: .95rem; margin-bottom: .25rem; }
+    .arch-desc { font-size: .78rem; color: var(--muted); line-height: 1.4; }
+
+    /* ── EVENTS SECTION ── */
+    .events-list {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 2.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    }
+
+    .event-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: .85rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .event-row:last-child { border-bottom: none; }
+
+    .event-name { font-weight: 700; font-size: .9rem; min-width: 160px; }
+    .event-arrow { color: var(--muted); }
+    .event-queue {
+      font-family: monospace;
+      font-size: .82rem;
+      color: #7c3aed;
+      background: #ede9fe;
+      padding: .2rem .55rem;
+      border-radius: 5px;
+    }
+    .event-desc { font-size: .8rem; color: var(--muted); margin-left: auto; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #0f172a;
+      color: #94a3b8;
+      text-align: center;
+      padding: 1.5rem;
+      font-size: .82rem;
+    }
+
+    footer a { color: #60a5fa; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ── MISC ── */
+    .flex { display: flex; }
+    .items-center { align-items: center; }
+    .gap-2 { gap: .5rem; }
+    .mt-1 { margin-top: .25rem; }
+  </style>
+</head>
+<body>
+
+<!-- ─── HEADER ─── -->
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+    </svg>
+    MedExam Platform
+  </div>
+  <div class="header-links">
+    <a class="btn btn-outline" href="/docs" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Swagger UI
+    </a>
+    <a class="btn btn-outline" href="/redoc" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      ReDoc
+    </a>
+    <a class="btn btn-white" href="/health" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Health
+    </a>
+  </div>
+</header>
+
+<!-- ─── HERO ─── -->
+<section class="hero">
+  <div class="hero-badge">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
+    API v1.0.0
+  </div>
+  <h1>MedExam Platform</h1>
+  <p>Plataforma de gerenciamento de exames médicos com arquitetura limpa, autenticação JWT e mensageria orientada a eventos.</p>
+  <div class="hero-actions">
+    <a class="btn btn-white" href="/docs" target="_blank">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Abrir Swagger UI
+    </a>
+    <a class="btn btn-outline" href="/redoc" target="_blank">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Abrir ReDoc
+    </a>
+  </div>
+  <div class="status-pill" id="status-pill">
+    <div class="dot checking" id="status-dot"></div>
+    <span id="status-text">Verificando serviço...</span>
+  </div>
+</section>
+
+<!-- ─── MAIN ─── -->
+<main>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card">
+      <span class="stat-label">Endpoints</span>
+      <span class="stat-value">10</span>
+      <span class="stat-sub">distribuídos em 4 módulos</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Autenticação</span>
+      <span class="stat-value">JWT</span>
+      <span class="stat-sub">Bearer Token + Bcrypt</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Banco de dados</span>
+      <span class="stat-value">PG</span>
+      <span class="stat-sub">PostgreSQL 16 + SQLAlchemy</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Mensageria</span>
+      <span class="stat-value">MQ</span>
+      <span class="stat-sub">RabbitMQ 3.13 + pika</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Arquitetura</span>
+      <span class="stat-value">CA</span>
+      <span class="stat-sub">Clean Arch + EDA</span>
+    </div>
+  </div>
+
+  <!-- Endpoints -->
+  <p class="section-title">Endpoints da API</p>
+  <div class="cards-grid">
+
+    <!-- Auth -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon icon-blue">🔐</div>
+        <div class="card-header-text">
+          <div class="card-title">Autenticação</div>
+          <div class="card-subtitle">Registro e login de usuários</div>
+        </div>
+        <span class="card-prefix">/api/v1/auth</span>
+      </div>
+      <div class="endpoint-list">
+        <div class="endpoint">
+          <span class="method method-post">POST</span>
+          <span class="endpoint-path">/register</span>
+          <span class="endpoint-desc">Registrar novo usuário</span>
+        </div>
+        <div class="endpoint">
+          <span class="method method-post">POST</span>
+          <span class="endpoint-path">/login</span>
+          <span class="endpoint-desc">Obter token JWT</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Patients -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon icon-green">🧑‍⚕️</div>
+        <div class="card-header-text">
+          <div class="card-title">Pacientes</div>
+          <div class="card-subtitle">Gestão de cadastro de pacientes</div>
+        </div>
+        <span class="card-prefix">/api/v1/patients</span>
+      </div>
+      <div class="endpoint-list">
+        <div class="endpoint">
+          <span class="method method-post">POST</span>
+          <span class="endpoint-path">/</span>
+          <span class="auth-badge">Médico</span>
+          <span class="endpoint-desc">Cadastrar paciente</span>
+        </div>
+        <div class="endpoint">
+          <span class="method method-get">GET</span>
+          <span class="endpoint-path">/</span>
+          <span class="auth-badge">Médico</span>
+          <span class="endpoint-desc">Listar pacientes</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Exams -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon icon-purple">🔬</div>
+        <div class="card-header-text">
+          <div class="card-title">Exames</div>
+          <div class="card-subtitle">Ecografias, ECGs e laudos digitais</div>
+        </div>
+        <span class="card-prefix">/api/v1/exams</span>
+      </div>
+      <div class="endpoint-list">
+        <div class="endpoint">
+          <span class="method method-post">POST</span>
+          <span class="endpoint-path">/</span>
+          <span class="auth-badge">Médico</span>
+          <span class="endpoint-desc">Criar exame + upload</span>
+        </div>
+        <div class="endpoint">
+          <span class="method method-get">GET</span>
+          <span class="endpoint-path">/patient/{id}</span>
+          <span class="auth-badge">JWT</span>
+          <span class="endpoint-desc">Exames do paciente</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reports -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon icon-orange">📋</div>
+        <div class="card-header-text">
+          <div class="card-title">Laudos</div>
+          <div class="card-subtitle">Geração e consulta de laudos médicos</div>
+        </div>
+        <span class="card-prefix">/api/v1/reports</span>
+      </div>
+      <div class="endpoint-list">
+        <div class="endpoint">
+          <span class="method method-post">POST</span>
+          <span class="endpoint-path">/</span>
+          <span class="auth-badge">Médico</span>
+          <span class="endpoint-desc">Emitir laudo</span>
+        </div>
+        <div class="endpoint">
+          <span class="method method-get">GET</span>
+          <span class="endpoint-path">/exam/{id}</span>
+          <span class="auth-badge">JWT</span>
+          <span class="endpoint-desc">Laudo do exame</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Architecture -->
+  <p class="section-title">Arquitetura</p>
+  <div class="arch-grid" style="margin-bottom:2.5rem">
+    <div class="arch-card">
+      <div class="arch-icon">🏛️</div>
+      <div class="arch-name">Clean Architecture</div>
+      <div class="arch-desc">Domain → Application → Infrastructure → Interface. Dependências sempre apontam para dentro.</div>
+    </div>
+    <div class="arch-card">
+      <div class="arch-icon">⚡</div>
+      <div class="arch-name">Event-Driven</div>
+      <div class="arch-desc">Eventos de domínio desacoplam módulos. RabbitMQ como broker de mensagens assíncronas.</div>
+    </div>
+    <div class="arch-card">
+      <div class="arch-icon">🔒</div>
+      <div class="arch-name">JWT + Roles</div>
+      <div class="arch-desc">Autenticação stateless. Roles: PATIENT, DOCTOR, ADMIN com controle por rota.</div>
+    </div>
+    <div class="arch-card">
+      <div class="arch-icon">🐳</div>
+      <div class="arch-name">Docker Compose</div>
+      <div class="arch-desc">API + PostgreSQL 16 + RabbitMQ 3.13 orquestrados com health checks automáticos.</div>
+    </div>
+    <div class="arch-card">
+      <div class="arch-icon">📦</div>
+      <div class="arch-name">Repository Pattern</div>
+      <div class="arch-desc">Portas e adaptadores isolam a persistência. Fácil trocar ORM ou banco sem alterar casos de uso.</div>
+    </div>
+  </div>
+
+  <!-- Events -->
+  <p class="section-title">Eventos de Domínio (RabbitMQ)</p>
+  <div class="events-list">
+    <div class="event-row">
+      <span class="event-name">🔬 ExamPerformed</span>
+      <span class="event-arrow">→</span>
+      <span class="event-queue">exam.performed</span>
+      <span class="event-desc">Disparado ao criar um exame</span>
+    </div>
+    <div class="event-row">
+      <span class="event-name">📋 ReportIssued</span>
+      <span class="event-arrow">→</span>
+      <span class="event-queue">report.issued</span>
+      <span class="event-desc">Disparado ao emitir um laudo</span>
+    </div>
+    <div class="event-row">
+      <span class="event-name">✅ ResultAvailable</span>
+      <span class="event-arrow">→</span>
+      <span class="event-queue">result.available</span>
+      <span class="event-desc">Notifica disponibilidade do resultado</span>
+    </div>
+  </div>
+
+  <!-- Quick links -->
+  <p class="section-title">Links Rápidos</p>
+  <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+    <a class="btn btn-outline" href="/docs" target="_blank"
+       style="background:var(--primary);color:#fff;border-color:var(--primary);padding:.6rem 1.25rem;font-size:.9rem;">
+      📄 Swagger UI — /docs
+    </a>
+    <a class="btn btn-outline" href="/redoc" target="_blank"
+       style="background:#7c3aed;color:#fff;border-color:#7c3aed;padding:.6rem 1.25rem;font-size:.9rem;">
+      📚 ReDoc — /redoc
+    </a>
+    <a class="btn btn-outline" href="/health" target="_blank"
+       style="background:var(--emerald);color:#fff;border-color:var(--emerald);padding:.6rem 1.25rem;font-size:.9rem;">
+      ♥ Health Check — /health
+    </a>
+    <a class="btn btn-outline" href="http://localhost:15672" target="_blank"
+       style="background:#d97706;color:#fff;border-color:#d97706;padding:.6rem 1.25rem;font-size:.9rem;">
+      🐇 RabbitMQ Management
+    </a>
+  </div>
+
+</main>
+
+<!-- ─── FOOTER ─── -->
+<footer>
+  <strong style="color:#e2e8f0;">MedExam Platform</strong> v1.0.0 &nbsp;·&nbsp;
+  FastAPI + SQLAlchemy + RabbitMQ &nbsp;·&nbsp;
+  <a href="/docs">Swagger</a> &nbsp;·&nbsp; <a href="/redoc">ReDoc</a>
+</footer>
+
+<script>
+  // Verificação de health check ao carregar a página
+  (async () => {
+    const dot  = document.getElementById('status-dot');
+    const text = document.getElementById('status-text');
+    try {
+      const res = await fetch('/health');
+      if (res.ok) {
+        dot.className  = 'dot';
+        text.textContent = 'Serviço online e operacional';
+      } else {
+        dot.className  = 'dot error';
+        text.textContent = `Serviço retornou HTTP ${res.status}`;
+      }
+    } catch {
+      dot.className  = 'dot error';
+      text.textContent = 'Não foi possível conectar ao serviço';
+    }
+  })();
+</script>
+</body>
+</html>
